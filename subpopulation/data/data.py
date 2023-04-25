@@ -7,7 +7,7 @@ import torchvision.transforms as transforms
 from data.confounder_utils import prepare_confounder_data, prepare_group_confounder_data
 from data.label_shift_utils import prepare_label_shift_data
 
-root_dir = "/scr/yoonho"
+root_dir = "/datasets/home/hbenoit/DivDis-exp/data"
 
 dataset_attributes = {
     "CMNIST": {"root_dir": "data/CMNIST"},

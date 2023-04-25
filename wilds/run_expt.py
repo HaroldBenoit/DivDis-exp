@@ -25,6 +25,7 @@ from utils import (
     move_to,
     parse_bool,
     set_seed,
+    majority_only_waterbirds_dataset
 )
 from wilds.common.data_loaders import get_eval_loader, get_train_loader
 from wilds.common.grouper import CombinatorialGrouper
@@ -88,6 +89,13 @@ def main():
         help="WILDS labeled dataset version number.",
     )
 
+    parser.add_argument(
+        "--majority_only",
+        default=False,
+        action="store_true",
+        help="If flag on, for suitable datasets e.g. Waterbirds, make the spurious feature completely\
+            correlated with the semantic feature on the training data"
+    )
     # Unlabeled Dataset
     parser.add_argument(
         "--unlabeled_split",
@@ -300,6 +308,11 @@ def main():
         type=int,
         help="If eval_only is set, then eval_epoch allows you to specify evaluating at a particular epoch. By default, it evaluates the best epoch by validation performance.",
     )
+    parser.add_argument(
+        "--eval_every_n_epoch",
+        default=1, 
+        type=int,
+        help="How many training epochs must have passed before we run a validation epoch")
 
     # Misc
     parser.add_argument("--device", type=int, nargs="+", default=[0])
@@ -402,6 +415,10 @@ def main():
         split_scheme=config.split_scheme,
         **config.dataset_kwargs,
     )
+
+    # Waterbirds-CC
+    if config.majority_only and (config.dataset == "waterbirds"):
+        full_dataset = majority_only_waterbirds_dataset(full_dataset)
 
     # Transforms & data augmentations for labeled dataset
     # To modify data augmentation, modify the following code block.

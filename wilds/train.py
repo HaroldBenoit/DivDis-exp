@@ -100,6 +100,7 @@ def run_epoch(
     epoch_y_true = collate_list(epoch_y_true)
     epoch_metadata = collate_list(epoch_metadata)
 
+    ## HERE IT DOES EVALUATION AGAIN
     results, results_str = dataset["dataset"].eval(
         epoch_y_pred, epoch_y_true, epoch_metadata
     )
@@ -155,42 +156,44 @@ def train(
         )
 
         # Then run val
-        val_results, y_pred = run_epoch(
-            algorithm, datasets["val"], general_logger, epoch, config, train=False
-        )
-        curr_val_metric = val_results[config.val_metric]
-        general_logger.write(f"Validation {config.val_metric}: {curr_val_metric:.3f}\n")
+        if epoch % config.eval_every_n_epoch == 0:
+            print("HERE EVAL")
+            val_results, y_pred = run_epoch(
+                algorithm, datasets["val"], general_logger, epoch, config, train=False
+            )
+            curr_val_metric = val_results[config.val_metric]
+            general_logger.write(f"Validation {config.val_metric}: {curr_val_metric:.3f}\n")
 
-        if best_val_metric is None:
-            is_best = True
-        else:
-            if config.val_metric_decreasing:
-                is_best = curr_val_metric < best_val_metric
+            if best_val_metric is None:
+                is_best = True
             else:
-                is_best = curr_val_metric > best_val_metric
-        if is_best:
-            best_val_metric = curr_val_metric
-            general_logger.write(
-                f"Epoch {epoch} has the best validation performance so far.\n"
-            )
+                if config.val_metric_decreasing:
+                    is_best = curr_val_metric < best_val_metric
+                else:
+                    is_best = curr_val_metric > best_val_metric
+            if is_best:
+                best_val_metric = curr_val_metric
+                general_logger.write(
+                    f"Epoch {epoch} has the best validation performance so far.\n"
+                )
 
-        save_model_if_needed(
-            algorithm, datasets["val"], epoch, config, is_best, best_val_metric
-        )
-        save_pred_if_needed(y_pred, datasets["val"], epoch, config, is_best)
-
-        # Then run everything else
-        if config.evaluate_all_splits:
-            additional_splits = [
-                split for split in datasets.keys() if split not in ["train", "val"]
-            ]
-        else:
-            additional_splits = config.eval_splits
-        for split in additional_splits:
-            _, y_pred = run_epoch(
-                algorithm, datasets[split], general_logger, epoch, config, train=False
+            save_model_if_needed(
+                algorithm, datasets["val"], epoch, config, is_best, best_val_metric
             )
-            save_pred_if_needed(y_pred, datasets[split], epoch, config, is_best)
+            save_pred_if_needed(y_pred, datasets["val"], epoch, config, is_best)
+
+            # Then run everything else
+            if config.evaluate_all_splits:
+                additional_splits = [
+                    split for split in datasets.keys() if split not in ["train", "val"]
+                ]
+            else:
+                additional_splits = config.eval_splits
+            for split in additional_splits:
+                _, y_pred = run_epoch(
+                    algorithm, datasets[split], general_logger, epoch, config, train=False
+                )
+                save_pred_if_needed(y_pred, datasets[split], epoch, config, is_best)
 
         general_logger.write("\n")
 

@@ -6,11 +6,12 @@ from PIL import Image
 from tqdm import tqdm
 from dataset_utils import crop_and_resize, combine_and_mask
 
+random.seed(10)
+
 ################ Paths and other configs - Set these #################################
-cub_dir = "../../data/CUB_200_2011"
-places_dir = "../../data/places365"
-output_dir = "../../data/"
-dataset_name = "waterbird_complete95_forest2water2"
+cub_dir = "datasets/home/hbenoit/DivDis-exp/data/CUB_200_2011"
+places_dir = "datasets/home/hbenoit/DivDis-exp/data/places365"
+output_dir = "datasets/home/hbenoit/DivDis-exp/data"
 
 target_places = [
     ["bamboo_forest", "forest/broadleaf"],  # Land backgrounds
@@ -19,6 +20,10 @@ target_places = [
 
 val_frac = 0.2  # What fraction of the training data to use as validation
 confounder_strength = 0.95  # Determines relative size of majority vs. minority groups
+
+## TODO adapt name to confounder strength ?
+dataset_name = "waterbird_complete95_forest2water2"
+
 ######################################################################################
 
 images_path = os.path.join(cub_dir, "images.txt")
@@ -170,7 +175,7 @@ for idx, target_places in enumerate(target_places):
         place_filenames += [
             f"/{target_place[0]}/{target_place}/{filename}"
             for filename in os.listdir(
-                os.path.join(places_dir, "data_large", target_place[0], target_place)
+                os.path.join(places_dir, "data_256", target_place[0], target_place)
             )
             if filename.endswith(".jpg")
         ]

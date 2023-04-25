@@ -10,6 +10,8 @@ import pandas as pd
 import re
 
 from torch.utils.data import DataLoader
+from wilds.datasets.waterbirds_dataset import WaterbirdsDataset
+
 
 try:
     import wandb
@@ -20,6 +22,22 @@ try:
     from torch_geometric.data import Batch
 except ImportError:
     pass
+
+
+def majority_only_waterbirds_dataset(dataset:WaterbirdsDataset) -> WaterbirdsDataset:
+    train_split_mask = dataset.split_array == dataset.split_dict["train"]
+    train_split_idx = np.where(train_split_mask)[0]
+
+    train_metadata_array = dataset.metadata_array[train_split_mask,:]
+
+    #(train_metadata_array[:,0].numpy() == train_metadata_array[:,1].numpy()).mean()
+    spurious = (train_metadata_array[:,0].numpy() == train_metadata_array[:,1].numpy())
+
+    non_spurious_train_split_idx = train_split_idx[~spurious]
+    ## little cheat to make the non_spurious train data points not attached to any split (train,val, test)
+    dataset.split_array[non_spurious_train_split_idx] = -1
+
+    return dataset
 
 
 def cross_entropy_with_logits_loss(input, soft_target):
