@@ -100,7 +100,7 @@ def run_epoch(
     epoch_y_true = collate_list(epoch_y_true)
     epoch_metadata = collate_list(epoch_metadata)
 
-    ## HERE IT DOES EVALUATION AGAIN
+    ## HERE IT TAKES THE EPOCH PREDICTIONS AND OUTPUTS CORRECT EVALUATION METRICS e.g. worst-group acc
     results, results_str = dataset["dataset"].eval(
         epoch_y_pred, epoch_y_true, epoch_metadata
     )
