@@ -20,6 +20,12 @@ model_defaults = {
         },
         "target_resolution": (224, 224),
     },
+    "densenet121_np": {
+        "model_kwargs": {
+            "pretrained": False,
+        },
+        "target_resolution": (224, 224),
+    },
     "wideresnet50": {
         "model_kwargs": {
             "pretrained": True,
@@ -43,7 +49,14 @@ model_defaults = {
             "pretrained": True,
         },
         "target_resolution": (224, 224),
-    },
+    },    
+    "resnet50_np": {
+        "model_kwargs": {
+            "pretrained": True,
+        },
+        "target_resolution": (224, 224),
+    }
+    ,
     "resnet101": {
         "model_kwargs": {
             "pretrained": True,

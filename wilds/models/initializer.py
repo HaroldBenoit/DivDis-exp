@@ -35,9 +35,11 @@ def initialize_model(config, d_out, is_featurizer=False):
         "resnet18",
         "resnet34",
         "resnet50",
+        "resnet50_np",
         "resnet101",
         "wideresnet50",
         "densenet121",
+        "densenet121_np",
     ):
         if featurize:
             featurizer = initialize_torchvision_model(
@@ -221,11 +223,11 @@ def initialize_torchvision_model(name, d_out, **kwargs):
     if name == "wideresnet50":
         constructor_name = "wide_resnet50_2"
         last_layer_name = "fc"
-    elif name == "densenet121":
-        constructor_name = name
+    elif name in ("densenet121", "densenet121_np"):
+        constructor_name = name.replace("_np","")
         last_layer_name = "classifier"
-    elif name in ("resnet18", "resnet34", "resnet50", "resnet101"):
-        constructor_name = name
+    elif name in ("resnet18", "resnet34", "resnet50","resnet50_np", "resnet101"):
+        constructor_name = name.replace("_np","")
         last_layer_name = "fc"
     else:
         raise ValueError(f"Torchvision model {name} not recognized")
