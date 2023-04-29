@@ -6,7 +6,6 @@ from PIL import Image
 from tqdm import tqdm
 from dataset_utils import crop_and_resize, combine_and_mask
 
-random.seed(10)
 
 ################ Paths and other configs - Set these #################################
 cub_dir = "datasets/home/hbenoit/DivDis-exp/data/CUB_200_2011"
