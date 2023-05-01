@@ -61,7 +61,7 @@ transforms = [
     "poverty",
     "rxrx1",
 ]
-additional_transforms = ["randaugment", "weak"]
+additional_transforms = ["None","randaugment", "weak"]
 
 # See models/initializer.py
 models = [

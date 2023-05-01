@@ -364,9 +364,9 @@ dataset_defaults = {
         "optimizer_kwargs": {"momentum": 0.9},
         "scheduler": None,
         "batch_size": 128,
-        "lr": 1e-5,
-        "weight_decay": 1.0,
-        "n_epochs": 300,
+        "lr": 0.001,
+        "weight_decay": 0.0001,
+        "n_epochs": 100,
         "process_outputs_function": "multiclass_logits_to_pred",
     },
     "yelp": {

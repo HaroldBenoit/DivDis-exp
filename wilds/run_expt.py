@@ -101,7 +101,7 @@ def main():
         "--unlabeled_split",
         default=None,
         type=str,
-        choices=wilds.unlabeled_splits,
+        choices=wilds.unlabeled_splits + ["val"],
         help="Unlabeled split to use. Some datasets only have some splits available.",
     )
     parser.add_argument(

@@ -9,3 +9,4 @@ After running on all ten seeds, perform final evaluation with he command
 ```
 python evaluate.py logs/camelyon_final_testaug --dataset camelyon17
 ```
+

@@ -8,9 +8,9 @@ from dataset_utils import crop_and_resize, combine_and_mask
 
 
 ################ Paths and other configs - Set these #################################
-cub_dir = "datasets/home/hbenoit/DivDis-exp/data/CUB_200_2011"
-places_dir = "datasets/home/hbenoit/DivDis-exp/data/places365"
-output_dir = "datasets/home/hbenoit/DivDis-exp/data"
+cub_dir = "/datasets/home/hbenoit/DivDis-exp/data/CUB_200_2011/"
+places_dir = "/datasets/home/hbenoit/DivDis-exp/data/"
+output_dir = "/datasets/home/hbenoit/DivDis-exp/data/"
 
 target_places = [
     ["bamboo_forest", "forest/broadleaf"],  # Land backgrounds
@@ -174,7 +174,7 @@ for idx, target_places in enumerate(target_places):
         place_filenames += [
             f"/{target_place[0]}/{target_place}/{filename}"
             for filename in os.listdir(
-                os.path.join(places_dir, "data_256", target_place[0], target_place)
+                os.path.join(places_dir, "data_large", target_place[0], target_place)
             )
             if filename.endswith(".jpg")
         ]
