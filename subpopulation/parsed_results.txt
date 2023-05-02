@@ -1,11 +1,9 @@
 
 
-Sorting for regex='paper_exp/logs/np_waterbirds/*_test.csv'
-Can't read paper_exp/logs/np_waterbirds/CUB_div_h2_np_0!
-Can't read paper_exp/logs/np_waterbirds/CUB_div_h2_np_1!
-Can't read paper_exp/logs/np_waterbirds/CUB_div_h2_np_2!
+Sorting for regex='paper_exp/logs/*test/*_test.csv'
 
 
 Standard Performance (Avg Acc, Worst Acc):
 
-Sorted by worst (Average acc, Worst-group acc)
+Sorted by worst (Average acc, Worst-group acc, Mean similarity)
+CUB_div_h2_mi-mean-10.00_kl_backward-10.00_maj_bs128_np                         	1  0.501 +- 0.000    0.131 +- 0.000    0.777 +- 0.000

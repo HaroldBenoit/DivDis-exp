@@ -158,6 +158,7 @@ def get_args():
         args.lr = 0.001
         args.weight_decay = 0.0001
         args.model = "resnet50"
+        args.batch_size = 128
         args.n_epochs = 100
         args.gamma = 0.1
     elif args.setting == "MultiNLI":
@@ -238,6 +239,9 @@ def get_args():
             args.exp_string += f"_fl{args.fixed_label_ratio}"
         elif args.ratio_split == "target":
             args.exp_string += "_tr"
+
+    if args.train_from_scratch:
+        args.exp_string += "_np"
     if args.in_dist_testing:
         args.exp_string += "_idtest"
     if args.robust:

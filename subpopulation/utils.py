@@ -85,7 +85,9 @@ class CSVBatchLogger:
             new_columns = [f"h{i}_{c}" for i in range(args.heads) for c in columns]
             new_columns += [f"h{i}_alt_{c}" for i in range(args.heads) for c in columns]
             columns = new_columns
-
+            ## similarity metric
+            columns += ["similarity_mean"]
+            
         columns += ["epoch", "batch"]
 
         self.path = csv_path

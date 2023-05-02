@@ -3,8 +3,9 @@ import os
 import sys
 from datetime import datetime
 from itertools import cycle
-
+from typing import List
 import numpy as np
+import pandas as pd
 import torch
 from pytorch_transformers import AdamW, WarmupLinearSchedule
 from torch.distributions.categorical import Categorical
@@ -13,7 +14,7 @@ from transformers import (
     get_cosine_schedule_with_warmup,
     get_linear_schedule_with_warmup,
 )
-
+from itertools import combinations
 from loss import LossComputer
 
 sys.path.insert(1, os.path.join(sys.path[0], ".."))
@@ -21,6 +22,33 @@ from divdis import DivDisLoss
 
 device = torch.device("cuda")
 
+def compute_similarities_mean(all_yhats:List[torch.Tensor],args):
+    sims= []
+    pairwise_indexes = list(combinations(range(args.heads),2))
+    preds = [torch.argmax(y_hat,dim=1) for y_hat in all_yhats]
+
+    for idx1, idx2 in pairwise_indexes:
+        print(preds[idx1].size())
+        print(((preds[idx1] == preds[idx2])).size())
+        similarity = (preds[idx1] == preds[idx2]).float().cpu().mean()
+        sims.append(similarity)
+
+    sims = np.array(sims)
+    
+    return sims.mean()
+
+def save_preds_to_csv(all_ys:torch.Tensor, all_yhats:List[torch.Tensor], is_val:bool, args):
+
+    all_ys = all_ys.view(-1,1)
+    all_yhats =torch.cat(all_yhats)
+    all_yhats = torch.argmax(all_yhats,dim=1).view(-1,args.heads)
+    x = torch.cat((all_ys,all_yhats), dim=-1).numpy()
+    df = pd.DataFrame(data=x, columns=["y"]+[f"y_hat_h{i}" for i in range(args.heads)])
+
+    prefix = "val" if is_val else "test"
+    filename = os.path.join(args.log_dir, f"{args.exp_string}_{prefix}_preds.csv")
+    df.to_csv(filename)
+    
 
 def sec_to_str(t):
     h, r = divmod(t, 3600)
@@ -30,7 +58,7 @@ def sec_to_str(t):
 
 
 def run_epoch_divdis_eval(
-    epoch, model, loader, loss_computers, logger, csv_logger, args
+    epoch, model, loader, loss_computers, logger, csv_logger, args, **kwargs
 ):
     model.eval()
 
@@ -57,13 +85,13 @@ def run_epoch_divdis_eval(
         yhats.append(yhat.cpu())
         gs.append(g.cpu())
 
+
     all_stats = {}
     for computer_idx, loss_computer in loss_computers.items():
         stats = loss_computer.get_stats()
         all_stats.update({f"{computer_idx}_{k}": v for k, v in stats.items()})
         loss_computer.reset_stats()
-    csv_logger.log(epoch, batch_idx, all_stats)
-    csv_logger.flush()
+
 
     worst_keys = [k for k in all_stats.keys() if "worst" in k and "alt" not in k]
     worst_vals = [all_stats[k] for k in worst_keys]
@@ -84,6 +112,17 @@ def run_epoch_divdis_eval(
     all_ys = torch.cat(ys)
     all_gs = torch.cat(gs)
     all_yhats = torch.chunk(torch.cat(yhats), args.heads, dim=-1)
+
+    all_stats["similarity_mean"] = compute_similarities_mean(all_yhats=all_yhats, args=args)
+
+    csv_logger.log(epoch, batch_idx, all_stats)
+    csv_logger.flush()
+
+    logger.write(f"Similarity mean {all_stats['similarity_mean']:.2f}\n")
+    logger.flush
+
+    ## save latest preds
+    save_preds_to_csv(all_ys=all_ys, all_yhats=all_yhats, is_val=kwargs["is_val"], args=args)
 
     probs_stacked = torch.stack(all_yhats).softmax(-1)
     diffs = probs_stacked.unsqueeze(0) - probs_stacked.unsqueeze(1)
@@ -507,6 +546,7 @@ def train(
                 "epoch": epoch,
                 "model": model,
                 "logger": logger,
+                "is_val":True,
                 "args": args,
             }
             if args.diversify:
@@ -571,6 +611,7 @@ def train(
                     "epoch": epoch,
                     "model": model,
                     "logger": logger,
+                    "is_val":False,
                     "args": args,
                 }
                 if args.diversify:
@@ -638,6 +679,7 @@ def train(
                 val_loss = val_loss_computer.avg_actual_loss
             scheduler.step(val_loss)  # scheduler step to update lr at the end of epoch
 
+
         if epoch % args.save_step == 0:
             torch.save(model, os.path.join(args.log_dir, "%d_model.pth" % epoch))
 
@@ -645,7 +687,10 @@ def train(
             torch.save(model, os.path.join(args.log_dir, "last_model.pth"))
 
         if args.save_best:
-            curr_val_acc = val_loss_computer.worst_group_acc
+            if args.diversify:
+                curr_val_acc = max(val_loss_computers[k].worst_group_acc for k in loss_computer_keys)
+            else:
+                curr_val_acc = val_loss_computer.worst_group_acc
 
             logger.write(f"Current validation accuracy: {curr_val_acc}\n")
             if curr_val_acc > best_val_acc:
