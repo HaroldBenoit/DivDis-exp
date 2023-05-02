@@ -91,5 +91,6 @@ def summarize(regex):
             f"{os.path.basename(key):<80}\t{N}  {avg_string}    {worst_string}"
         )
 
-summarize("logs/final_results_10-10/*_test.csv")
-summarize("logs/final_results_100-10/*_test.csv")
+#summarize("logs/final_results_10-10/*_test.csv")
+#summarize("logs/final_results_100-10/*_test.csv")
+#summarize("paper_exp/logs/np-wa/*_test.csv")

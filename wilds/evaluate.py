@@ -48,7 +48,7 @@ def evaluate_all_benchmarks(predictions_dir: str, output_dir: str, root_dir: str
 
 
 def evaluate_benchmark(
-    dataset_name: str, predictions_dir: str, output_dir: str, root_dir: str
+    dataset_name: str, predictions_dir: str, output_dir: str, root_dir: str, seeds:List[str], folder_format:str, final_name:str
 ):
     """
     Evaluate across multiple replicates for a single benchmark.
@@ -76,16 +76,22 @@ def evaluate_benchmark(
             return [f"seed:{seed}" for seed in seeds]
 
     def get_prediction_file(
-        predictions_dir: str, dataset_name: str, split: str, replicate: str
+        predictions_dir: str, dataset_name: str, split: str, replicate: str, folder_format:str
     ):
-        run_id = f"{dataset_name}_split:{split}_{replicate}"
+        
+        ## adjusting to our logic where each run is a different folder
+        if folder_format is not None:
+            predictions_dir = os.path.join(predictions_dir, folder_format.format(seed=replicate))
+            replicate=f"seed:{replicate}"
+
+        run_id = f"{dataset_name}_split:{split}_{replicate}_epoch:best_pred"
         for file in os.listdir(predictions_dir):
             if file.startswith(run_id) and (
                 file.endswith(".csv") or file.endswith(".pth")
             ):
                 return file
         raise FileNotFoundError(
-            f"Could not find CSV or pth prediction file that starts with {run_id}."
+            f"Could not find CSV or pth prediction file that starts with {run_id} in {predictions_dir}."
         )
 
     def get_metrics(dataset_name: str):
@@ -114,14 +120,14 @@ def evaluate_benchmark(
 
     # Dataset will only be downloaded if it does not exist
     wilds_dataset: WILDSDataset = get_dataset(
-        dataset=dataset_name, root_dir=root_dir, download=True
+        dataset=dataset_name, root_dir=root_dir, download=False
     )
     splits: List[str] = list(wilds_dataset.split_dict.keys())
     if "train" in splits:
         splits.remove("train")
 
     replicates_results: Dict[str, Dict[str, List[float]]] = dict()
-    replicates: List[str] = get_replicates(dataset_name)
+    replicates: List[str] = seeds if seeds is not None else get_replicates(dataset_name)
     metrics: List[str] = get_metrics(dataset_name)
 
     # Store the results for each replicate
@@ -133,12 +139,18 @@ def evaluate_benchmark(
         for replicate in replicates:
             try:
                 predictions_file = get_prediction_file(
-                    predictions_dir, dataset_name, split, replicate
+                    predictions_dir, dataset_name, split, replicate, folder_format
                 )
                 print(
                     f"Processing split={split}, replicate={replicate}, predictions_file={predictions_file}..."
                 )
-                full_path = os.path.join(predictions_dir, predictions_file)
+
+                if folder_format is not None:
+                    full_path = os.path.join(predictions_dir, folder_format.format(seed=replicate) ,predictions_file)
+                else:
+                    full_path = os.path.join(predictions_dir,predictions_file)
+
+                    
                 # GlobalWheat's predictions are a list of dictionaries, so it has to be handled separately
                 if dataset_name == "globalwheat":
                     metric_results: Dict[
@@ -172,7 +184,10 @@ def evaluate_benchmark(
     # Write out aggregated results to output file
     print(f"Writing aggregated results for {dataset_name} to {output_dir}...")
     os.makedirs(output_dir, exist_ok=True)
-    with open(os.path.join(output_dir, f"{dataset_name}_results.json"), "w") as f:
+
+    final_name = dataset_name if final_name is None else final_name
+
+    with open(os.path.join(output_dir, f"{final_name}_results.json"), "w") as f:
         json.dump(aggregated_results, f, indent=4)
 
     return aggregated_results
@@ -246,7 +261,7 @@ def is_path_url(path: str):
 def main():
     if args.dataset:
         evaluate_benchmark(
-            args.dataset, args.predictions_dir, args.output_dir, args.root_dir
+            args.dataset, args.predictions_dir, args.output_dir, args.root_dir, args.seeds, args.folder_format, args.final_name
         )
     else:
         print("A dataset was not specified. Evaluating for all WILDS datasets...")
@@ -272,16 +287,38 @@ if __name__ == "__main__":
     parser.add_argument(
         "--root-dir",
         type=str,
-        default="/scr/yoonho/data",
+        default="/datasets/home/hbenoit/D-BAT-exp/datasets",
         help="The directory where the datasets can be found (or should be downloaded to, if they do not exist).",
     )
+    parser.add_argument(
+        "--seeds",
+        nargs="*",
+        type=str,
+        default=None,
+        help="Specifies the seeds to be evaluated on")
+    
+    parser.add_argument(
+        "--folder_format",
+        type=str,
+        default=None,
+        help="Specifies the format of the folder name under which the results are stored e.g. camelyon_seed{seed}"
+    )
+
+    parser.add_argument(
+        "--final_name",
+        type=str,
+        default=None
+    )
+
 
     # Parse args and run this script
     args = parser.parse_args()
     args.output_dir = args.predictions_dir
     main()
 
-    out_fn = os.path.join(args.output_dir, f"{args.dataset}_results.json")
+    final_name = args.dataset if args.final_name is None else args.final_name
+
+    out_fn = os.path.join(args.output_dir, f"{final_name}_results.json")
     try:
         print("\n\nProcessed results:")
         with open(out_fn, "r") as f:

@@ -69,7 +69,7 @@ models = [
     "resnet18",
     "resnet34",
     "resnet50",
-    "resnet50_np"
+    "resnet50_np",
     "resnet101",
     "wideresnet50",
     "densenet121",
