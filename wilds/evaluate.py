@@ -147,6 +147,7 @@ def evaluate_benchmark(
 
                 if folder_format is not None:
                     full_path = os.path.join(predictions_dir, folder_format.format(seed=replicate) ,predictions_file)
+                    print(full_path)
                 else:
                     full_path = os.path.join(predictions_dir,predictions_file)
 

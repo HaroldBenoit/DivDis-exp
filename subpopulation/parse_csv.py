@@ -23,8 +23,9 @@ def get_vals(val_csvs, test_csvs, keys, run_slice=None, return_similarity=False)
     val_metrics = np.stack([val_csvs[k].values for k in keys], axis=0)[:, run_slice]
     test_metrics = np.stack([test_csvs[k].values for k in keys], axis=0)[:, run_slice]
 
-    val_sims = np.stack([val_csvs[k].values for k in ["similarity_mean"]], axis=0)[:, run_slice]
-    test_sims = np.stack([test_csvs[k].values for k in ["similarity_mean"]], axis=0)[:, run_slice]
+    if return_similarity:
+        val_sims = np.stack([val_csvs[k].values for k in ["similarity_mean"]], axis=0)[:, run_slice]
+        test_sims = np.stack([test_csvs[k].values for k in ["similarity_mean"]], axis=0)[:, run_slice]
 
     # Cut to min length, prevents errors when only one of two csvs were updated
     both_N = min(val_metrics.shape[-1], test_metrics.shape[-1])
@@ -36,13 +37,21 @@ def get_vals(val_csvs, test_csvs, keys, run_slice=None, return_similarity=False)
 
     test_max = np.max(test_metrics)
     test_cv = test_metrics[n_model, n_epoch]
-    val_sim = val_sims[n_model,n_epoch]
-    test_sim = test_sims[n_model, n_epoch]
+    print(f"Best epoch {n_epoch}")
 
-    return {"val": val_max, "test": test_max, "test_cv": test_cv, "val_sim":val_sim, "test_sim":test_sim}
+    res = {"val": val_max, "test": test_max, "test_cv": test_cv}
+
+    if return_similarity:
+        val_sim = val_sims[0,n_epoch]
+        test_sim = test_sims[0, n_epoch]
+
+        res["val_sim"] = val_sim 
+        res["test_sim"] = test_sim
+
+    return res
 
 
-def summarize(regex):
+def summarize(regex, no_sim=False):
     logger.info(f"\n\nSorting for {regex=}")
     filenames = glob.glob(regex)
     exp_settings = [
@@ -73,7 +82,7 @@ def summarize(regex):
             worst_keys = ["worst_group_acc"]
             avg_keys = ["group_avg_acc"]
         print(n, name)
-        worst_accs = get_vals(val_csv, test_csv, worst_keys, run_slice=run_slice, return_similarity=True)
+        worst_accs = get_vals(val_csv, test_csv, worst_keys, run_slice=run_slice, return_similarity=not(no_sim))
         avg_accs = get_vals(val_csv, test_csv, avg_keys, run_slice=run_slice)
         
         setting_name = name[:-2]
@@ -90,15 +99,22 @@ def summarize(regex):
     for key in keys_worst:
         avgs = [i["test_cv"] for i in avgs_dict[key]]
         worsts = [i["test_cv"] for i in worsts_dict[key]]
-        sims = [i["test_sim"] for i in worsts_dict[key]]
+
         N = len(worsts)
         avg_string = f"{np.mean(avgs):.3f} +- {np.std(avgs):.3f}"
         worst_string = f"{np.mean(worsts):.3f} +- {np.std(worsts):.3f}"
-        sims_string = f"{np.mean(sims):.3f} +- {np.std(sims):.3f}"
+        
+        res_string = f"{os.path.basename(key):<80}\t{N}  {avg_string}    {worst_string}"
+
+        if not(no_sim):
+            sims = [i["test_sim"] for i in worsts_dict[key]]
+            sims_string = f"{np.mean(sims):.3f} +- {np.std(sims):.3f}"
+            res_string = f"{os.path.basename(key):<80}\t{N}  {avg_string}    {worst_string}    {sims_string}"
+
         logger.info(
-            f"{os.path.basename(key):<80}\t{N}  {avg_string}    {worst_string}    {sims_string}"
+            res_string
         )
 
-#summarize("logs/final_results_10-10/*_test.csv")
-#summarize("logs/final_results_100-10/*_test.csv")
-summarize("paper_exp/logs/*test/*_test.csv")
+#summarize("logs/final_results_10-10/*_test.csv", no_sim=True)
+#summarize("logs/final_results_100-10/*_test.csv", no_sim=True)
+summarize("paper_exp/logs/div10/*waterbirds/*_test.csv")

@@ -52,7 +52,7 @@ model_defaults = {
     },    
     "resnet50_np": {
         "model_kwargs": {
-            "pretrained": True,
+            "pretrained": False,
         },
         "target_resolution": (224, 224),
     }
