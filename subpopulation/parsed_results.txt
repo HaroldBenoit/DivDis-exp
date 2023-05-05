@@ -1,12 +1,20 @@
 
 
-Sorting for regex='paper_exp/logs/div10/*waterbirds/*_test.csv'
+Sorting for regex='paper_exp/logs/div*/*waterbirds/*_test.csv'
 
 
 Standard Performance (Avg Acc, Worst Acc):
 
 Sorted by worst (Average acc, Worst-group acc, Mean similarity)
 CUB_div_h2_mi-mean-10.00_kl_backward-10.00_bs128                                	3  0.860 +- 0.025    0.723 +- 0.053    0.837 +- 0.028
+CUB_div_h2_mi-mean-100.00_kl_backward-10.00_bs128                               	3  0.824 +- 0.014    0.716 +- 0.042    0.809 +- 0.040
+CUB_div_h2_mi-mean-1.00_kl_backward-10.00_bs128                                 	3  0.860 +- 0.018    0.708 +- 0.071    0.866 +- 0.035
+CUB_div_h2_mi-mean-1.00_kl_backward-10.00_maj_bs128                             	3  0.828 +- 0.020    0.631 +- 0.065    0.754 +- 0.012
+CUB_div_h2_mi-mean-100.00_kl_backward-10.00_maj_bs128                           	3  0.802 +- 0.017    0.609 +- 0.041    0.792 +- 0.037
 CUB_div_h2_mi-mean-10.00_kl_backward-10.00_maj_bs128                            	3  0.806 +- 0.053    0.609 +- 0.112    0.775 +- 0.048
 CUB_div_h2_mi-mean-10.00_kl_backward-10.00_bs128_np                             	3  0.548 +- 0.001    0.281 +- 0.060    0.738 +- 0.023
 CUB_div_h2_mi-mean-10.00_kl_backward-10.00_maj_bs128_np                         	3  0.529 +- 0.007    0.252 +- 0.016    0.682 +- 0.067
+CUB_div_h2_mi-mean-1.00_kl_backward-10.00_bs128_np                              	3  0.545 +- 0.007    0.249 +- 0.045    0.763 +- 0.053
+CUB_div_h2_mi-mean-1.00_kl_backward-10.00_maj_bs128_np                          	3  0.527 +- 0.003    0.189 +- 0.009    0.802 +- 0.033
+CUB_div_h2_mi-mean-100.00_kl_backward-10.00_maj_bs128_np                        	3  0.520 +- 0.001    0.180 +- 0.083    0.696 +- 0.109
+CUB_div_h2_mi-mean-100.00_kl_backward-10.00_bs128_np                            	3  0.530 +- 0.006    0.108 +- 0.010    0.634 +- 0.037
