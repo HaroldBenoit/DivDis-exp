@@ -2,7 +2,7 @@ import math
 
 import torch
 from tqdm import tqdm
-
+import json 
 from configs.supported import process_outputs_functions, process_pseudolabels_functions
 from utils import (
     InfiniteDataIterator,
@@ -13,10 +13,10 @@ from utils import (
     save_model,
     save_pred,
 )
-
+from collections import defaultdict
 
 def run_epoch(
-    algorithm, dataset, general_logger, epoch, config, train, unlabeled_dataset=None
+    algorithm, dataset, general_logger, epoch, config, train, unlabeled_dataset=None, split=None
 ):
     if dataset["verbose"]:
         general_logger.write(f"\n{dataset['name']}:\n")
@@ -33,6 +33,7 @@ def run_epoch(
     # (which might not return exactly the same number of examples per epoch)
     epoch_y_true = []
     epoch_y_pred = []
+    epoch_y_pred_heads = defaultdict(list)
     epoch_metadata = []
 
     # Assert that data loaders are defined for the datasets
@@ -68,6 +69,15 @@ def run_epoch(
                 )
         else:
             batch_results = algorithm.evaluate(labeled_batch)
+             ## individual head preds for DivDis
+            if config.algorithm == "DivDis":
+                for key in batch_results.keys():
+                        if "y_pred_" in key:
+                            head_number = key[7:] ## get head number
+                            y_pred = detach_and_clone(batch_results[key])
+                            if config.process_outputs_function is not None:
+                                y_pred = process_outputs_functions[config.process_outputs_function](y_pred)
+                            epoch_y_pred_heads[f"h_{head_number}"].append(y_pred)
 
         # These tensors are already detached, but we need to clone them again
         # Otherwise they don't get garbage collected properly in some versions
@@ -115,6 +125,21 @@ def run_epoch(
         algorithm, dataset, general_logger, epoch, math.ceil(effective_batch_idx)
     )
 
+    if config.algorithm == "DivDis" and not(train):
+            aux_results = {}
+            for key in epoch_y_pred_heads:
+                curr_key = f"res_{key}"
+                pred = collate_list(epoch_y_pred_heads[key])
+                aux_results[curr_key] = dataset["dataset"].eval(
+                pred, epoch_y_true, epoch_metadata
+                )[0]
+                aux_results[f"epoch_y_pred_{curr_key}"] = pred.tolist()
+
+            aux_results["epoch_y_true"] = epoch_y_true.tolist()
+            aux_results["epoch_metadata"] = epoch_metadata.tolist()
+
+            results["aux_results"] = aux_results
+
     results["epoch"] = epoch
     dataset["eval_logger"].log(results)
     if dataset["verbose"]:
@@ -159,7 +184,7 @@ def train(
         if epoch % config.eval_every_n_epoch == 0:
             print("HERE EVAL")
             val_results, y_pred = run_epoch(
-                algorithm, datasets["val"], general_logger, epoch, config, train=False
+                algorithm, datasets["val"], general_logger, epoch, config, train=False, split="val"
             )
             curr_val_metric = val_results[config.val_metric]
             general_logger.write(f"Validation {config.val_metric}: {curr_val_metric:.3f}\n")
@@ -177,6 +202,13 @@ def train(
                     f"Epoch {epoch} has the best validation performance so far.\n"
                 )
 
+            ## saving divdis results
+            if "aux_results" in val_results:
+                aux_results = val_results["aux_results"]
+                save_aux_results_if_needed(dataset=datasets["val"], aux_results=aux_results, is_best=is_best, config=config)
+                  
+
+
             save_model_if_needed(
                 algorithm, datasets["val"], epoch, config, is_best, best_val_metric
             )
@@ -190,10 +222,15 @@ def train(
             else:
                 additional_splits = config.eval_splits
             for split in additional_splits:
-                _, y_pred = run_epoch(
-                    algorithm, datasets[split], general_logger, epoch, config, train=False
+                split_results, y_pred = run_epoch(
+                    algorithm, datasets[split], general_logger, epoch, config, train=False, split=split
                 )
                 save_pred_if_needed(y_pred, datasets[split], epoch, config, is_best)
+
+                ## saving divdis results
+                if "aux_results" in split_results:
+                    aux_results = split_results["aux_results"]
+                    save_aux_results_if_needed(dataset=datasets[split], aux_results=aux_results, is_best=is_best, config=config)
 
         general_logger.write("\n")
 
@@ -210,6 +247,7 @@ def evaluate(algorithm, datasets, epoch, general_logger, config, is_best):
         iterator = tqdm(dataset["loader"]) if config.progress_bar else dataset["loader"]
         for batch in iterator:
             batch_results = algorithm.evaluate(batch)
+           
             epoch_y_true.append(detach_and_clone(batch_results["y_true"]))
             y_pred = detach_and_clone(batch_results["y_pred"])
             if config.process_outputs_function is not None:
@@ -307,3 +345,17 @@ def save_model_if_needed(algorithm, dataset, epoch, config, is_best, best_val_me
         save_model(algorithm, epoch, best_val_metric, prefix + "epoch:last_model.pth")
     if config.save_best and is_best:
         save_model(algorithm, epoch, best_val_metric, prefix + "epoch:best_model.pth")
+
+def save_aux_results_if_needed(dataset, aux_results, is_best, config):
+    prefix = get_pred_prefix(dataset=dataset,config=config)
+
+    if config.save_best and is_best:
+        filename = prefix + f"epoch:best_preds.json"
+        with open(filename,'w', encoding='utf-8') as f:
+            json.dump(aux_results, f, ensure_ascii=False, indent=4)
+
+    if config.save_last:
+        filename = prefix + f"epoch:last_preds.json"
+        with open(filename,'w', encoding='utf-8') as f:
+            json.dump(aux_results, f, ensure_ascii=False, indent=4)
+

@@ -2,7 +2,7 @@
 
 for seed in 2 3 4
     do
-        for diversity_weight in 1 10
+        for diversity_weight in 0.01
 
             do
     

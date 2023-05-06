@@ -117,4 +117,5 @@ def summarize(regex, no_sim=False):
 
 #summarize("logs/final_results_10-10/*_test.csv", no_sim=True)
 #summarize("logs/final_results_100-10/*_test.csv", no_sim=True)
-summarize("paper_exp/logs/div*/*waterbirds/*_test.csv")
+#summarize("paper_exp/logs/div*/*waterbirds/*_test.csv")
+summarize("paper_exp/celeba/logs/*celeba*/*/*_test.csv")

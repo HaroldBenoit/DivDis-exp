@@ -140,6 +140,7 @@ def load(module, path, device=None, tries=2):
     try:
         module.load_state_dict(state)
     except:
+        print("NOT STRICT LOADING")
         # Otherwise, attempt to reconcile mismatched keys and load with strict=False
         module_keys = module.state_dict().keys()
         for _ in range(tries):

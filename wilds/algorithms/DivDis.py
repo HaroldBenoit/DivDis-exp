@@ -123,6 +123,7 @@ class DivDis(SingleModelAlgorithm):
         self.training_mode = self.training
 
         return results
+    
 
     def objective(self, results):
         # Labeled loss
