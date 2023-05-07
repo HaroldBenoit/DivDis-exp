@@ -1,6 +1,6 @@
 
 ## possibly increase epoch 
-for seed in 2 3 4
+for seed in 3 4
     do
 
     for diversity_weight in 1 10

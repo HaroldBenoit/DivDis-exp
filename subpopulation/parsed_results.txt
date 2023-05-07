@@ -1,14 +1,12 @@
 
 
-Sorting for regex='paper_exp/celeba/logs/*celeba*/*/*_test.csv'
+Sorting for regex='paper_exp/waterbirds/logs/div10/*waterbirds/*_test.csv'
 
 
 Standard Performance (Avg Acc, Worst Acc):
 
 Sorted by worst (Average acc, Worst-group acc, Mean similarity)
-CELEBA_2_div_h2_mi-mean-10.00_kl_backward-10.00_maj_bs32_lr0.0001               	1  0.797 +- 0.000    0.703 +- 0.000    0.542 +- 0.000
-CELEBA_2_div_h2_mi-mean-10.00_kl_backward-10.00_maj_bs32_lr0.0001               	1  0.796 +- 0.000    0.691 +- 0.000    0.579 +- 0.000
-CELEBA_2_div_h2_mi-mean-10.00_kl_backward-10.00_maj_bs32_lr0.0001               	1  0.795 +- 0.000    0.688 +- 0.000    0.601 +- 0.000
-CELEBA_2_div_h2_mi-mean-10.00_kl_backward-10.00_maj_bs32_lr0.0001_np            	1  0.639 +- 0.000    0.540 +- 0.000    0.860 +- 0.000
-CELEBA_2_div_h2_mi-mean-10.00_kl_backward-10.00_maj_bs32_lr0.0001_np            	1  0.619 +- 0.000    0.519 +- 0.000    0.889 +- 0.000
-CELEBA_2_div_h2_mi-mean-10.00_kl_backward-10.00_maj_bs32_lr0.0001_np            	1  0.607 +- 0.000    0.487 +- 0.000    0.774 +- 0.000
+CUB_div_h2_mi-mean-10.00_kl_backward-10.00_bs128                                	3  0.860 +- 0.025    0.723 +- 0.053    0.837 +- 0.028
+CUB_div_h2_mi-mean-10.00_kl_backward-10.00_maj_bs128                            	3  0.806 +- 0.053    0.609 +- 0.112    0.775 +- 0.048
+CUB_div_h2_mi-mean-10.00_kl_backward-10.00_bs128_np                             	3  0.548 +- 0.001    0.281 +- 0.060    0.738 +- 0.023
+CUB_div_h2_mi-mean-10.00_kl_backward-10.00_maj_bs128_np                         	3  0.529 +- 0.007    0.252 +- 0.016    0.682 +- 0.067
