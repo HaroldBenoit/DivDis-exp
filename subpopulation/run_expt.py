@@ -17,7 +17,9 @@ from data.folds import Subset
 from models import model_attributes
 from train import train
 from utils import CSVBatchLogger, Logger, construct_loader, log_args, set_seed
-
+from resnet_simclr import get_resnet
+from robust_resnet import get_robust_resnet50
+import sys
 
 def main():
     args = get_args()
@@ -200,6 +202,33 @@ def main():
             for p in model.parameters():
                 p.requires_grad = False
         model.fc = nn.Linear(d, n_classes)
+    elif args.model == "resnet50SIMCLRv2":
+        model, _ = get_resnet(depth=50, width_multiplier=1, sk_ratio=0)
+        state = torch.load("/datasets/home/hbenoit/SimCLRv2-Pytorch/r50_1x_sk0.pth")
+        model.load_state_dict(state["resnet"])
+        d = model.fc.in_features
+        if args.head_only:
+            for p in model.parameters():
+                p.requires_grad = False
+        model.fc = nn.Linear(d, n_classes)
+    elif args.model == "robust_resnet50":
+        print("HERE ROBUST LOADING")
+        robust = get_robust_resnet50()
+        state = torch.load("/datasets/home/hbenoit/robust_resnet/resnet50_l2_eps0.05.ckpt")
+        new_state = {}
+        for k in state["model"]:
+            if "attacker" not in k:
+                new_state [k.replace("module.","")] = state["model"][k]
+        robust.load_state_dict(new_state)
+        d = robust.model.fc.in_features
+        if args.head_only:
+            for p in robust.model.parameters():
+                p.requires_grad = False
+        robust.model.fc = nn.Linear(d, n_classes)
+
+        ## assume model
+        model = robust
+        
     elif args.model == "resnet34":
         model = torchvision.models.resnet34(pretrained=pretrained)
         d = model.fc.in_features

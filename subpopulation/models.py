@@ -16,6 +16,16 @@ model_attributes = {
         "target_resolution": (224, 224),
         "flatten": False,
     },
+    "resnet50SIMCLRv2": {
+        "feature_type": "image",
+        "target_resolution": (224, 224),
+        "flatten": False,
+    },
+    "robust_resnet50": {
+        "feature_type": "image",
+        "target_resolution": (224, 224),
+        "flatten": False,
+    },
     "resnet34": {"feature_type": "image", "target_resolution": None, "flatten": False},
     "raw_logistic_regression": {
         "feature_type": "image",

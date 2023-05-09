@@ -7,6 +7,7 @@ from collections import defaultdict
 import numpy as np
 import pandas as pd
 from loguru import logger
+from pathlib import Path
 
 log_file = "parsed_results.txt"
 if os.path.exists(log_file):
@@ -81,15 +82,20 @@ def summarize(regex, no_sim=False):
         else:
             worst_keys = ["worst_group_acc"]
             avg_keys = ["group_avg_acc"]
-        print(n, name)
+        #print(n, name)
         worst_accs = get_vals(val_csv, test_csv, worst_keys, run_slice=run_slice, return_similarity=not(no_sim))
         avg_accs = get_vals(val_csv, test_csv, avg_keys, run_slice=run_slice)
         
         setting_name = name[:-2]
+        path = Path(setting_name)
+        ## assuming seed folder
+        setting_name = os.path.join(path.parents[1], path.stem)
+        print("Setting", setting_name)
         worsts_dict[setting_name].append(worst_accs)
         avgs_dict[setting_name].append(avg_accs)
 
     keys_worst = sorted(
+
         worsts_dict.keys(),
         key=lambda k: np.mean([i["test_cv"] for i in worsts_dict[k]]),
         reverse=True,
@@ -117,5 +123,9 @@ def summarize(regex, no_sim=False):
 
 #summarize("logs/final_results_10-10/*_test.csv", no_sim=True)
 #summarize("logs/final_results_100-10/*_test.csv", no_sim=True)
-summarize("paper_exp/waterbirds/logs/div10/*waterbirds/*_test.csv")
-#summarize("paper_exp/celeba/logs/*celeba*/*/*_test.csv")
+#summarize("paper_exp/waterbirds/logs/div*/np_cc_waterbirds/*_test.csv")
+#summarize("paper_exp/waterbirds/logs/div1/waterbirds/seed*/*_test.csv")
+
+#summarize("paper_exp/waterbirds/logs/simclr/div10/*waterbirds/seed*/*_test.csv")
+#summarize("paper_exp/celeba/logs/np_celeba_1_cc/*_test.csv")
+#summarize("paper_exp/celeba/logs/*celeba_2/seed*/*_test.csv")

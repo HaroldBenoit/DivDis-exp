@@ -157,7 +157,8 @@ def get_args():
         args.confounder_names = ["forest2water2"]
         args.lr = 0.001
         args.weight_decay = 0.0001
-        args.model = "resnet50"
+        #default is resnet50
+        #args.model = "resnet50"
         args.batch_size = 128
         args.n_epochs = 100
         args.gamma = 0.1
