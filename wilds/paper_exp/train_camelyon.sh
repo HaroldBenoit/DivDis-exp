@@ -2,7 +2,7 @@
 
 for seed in 2 3 4
     do
-        for diversity_weight in 100
+        for diversity_weight in 10
 
             do
     
@@ -10,5 +10,7 @@ for seed in 2 3 4
 
     done
 done
+
+
 
 

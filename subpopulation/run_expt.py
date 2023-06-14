@@ -14,7 +14,7 @@ from data import folds
 from data.data import log_data, log_meta_data, prepare_data
 from data.dro_dataset import DRODataset
 from data.folds import Subset
-from models import model_attributes
+from models import model_attributes, ConcatenatedModel
 from train import train
 from utils import CSVBatchLogger, Logger, construct_loader, log_args, set_seed
 from resnet_simclr import get_resnet
@@ -47,11 +47,14 @@ def main():
 
     set_seed(args.seed)
 
+    print("SET SEED")
+
     # Data
     # Test data for label_shift_step is not implemented yet
     test_data = None
     test_loader = None
 
+    print("prepare data")
     if args.shift_type == "confounder":
         train_data, val_data, test_data = prepare_data(args, train=True)
     elif args.shift_type == "label_shift_step":
@@ -80,9 +83,38 @@ def main():
         "pin_memory": True,
     }
 
-    val_loader = construct_loader(
-        val_data, train=False, reweight_groups=None, loader_kwargs=loader_kwargs
-    )
+    ## modify val data to make it only have minority groups
+    if args.inverse_correlation:
+        if args.dataset == "CUB":
+            minority_groups = (1, 2)
+        else:
+            raise NotImplementedError("no inverse correlation for this dataset")
+        
+        minority_idxs = [
+            np.where(val_data.get_group_array() == i)[0] for i in minority_groups
+        ]
+        minority_idxs = np.concatenate(minority_idxs)
+        temp_val_data = DRODataset(
+            Subset(val_data, minority_idxs),
+            process_item_fn=None,
+            n_groups=val_data.n_groups,
+            n_classes=val_data.n_classes,
+            group_str_fn=val_data.group_str,
+        )
+        val_loader = temp_val_data.get_loader(
+            train=False, reweight_groups=None, **loader_kwargs
+        )
+        _, counts = np.unique(val_data.get_group_array(), return_counts=True)
+        print(
+            f"Using minority classes only for unlabeled {minority_groups}. Counts: {counts}. Selected {len(temp_val_data)} of {len(val_data)} datapoints."
+        )
+
+    else:
+        val_loader = construct_loader(
+            val_data, train=False, reweight_groups=None, loader_kwargs=loader_kwargs
+        )
+
+
     test_loader = construct_loader(
         test_data, train=False, reweight_groups=None, loader_kwargs=loader_kwargs
     )
@@ -202,6 +234,41 @@ def main():
             for p in model.parameters():
                 p.requires_grad = False
         model.fc = nn.Linear(d, n_classes)
+    elif args.model == "vit_b_16":
+        pretrained_str = None if not(pretrained) else 'IMAGENET1K_V1'
+        model = torchvision.models.vit_b_16(weights=pretrained_str)
+        model.heads = nn.Linear(in_features=768, out_features=n_classes, bias=True)
+
+    elif args.model == "vit_b_16_resnet50":
+        assert args.heads == 2
+        pretrained_str = None if not(pretrained) else 'IMAGENET1K_V1'
+        vit = torchvision.models.vit_b_16(weights=pretrained_str)
+        vit.heads = nn.Linear(in_features=768, out_features=train_data.n_classes, bias=True)
+
+        resnet = torchvision.models.resnet50(pretrained=pretrained)
+        d = resnet.fc.in_features
+        resnet.fc = nn.Linear(d,train_data.n_classes)
+        model = ConcatenatedModel(model1=vit, model2=resnet)
+    elif args.model == "vit_b_16_resnet50_np":
+        assert args.heads == 2
+        pretrained_str = None if not(pretrained) else 'IMAGENET1K_V1'
+        vit = torchvision.models.vit_b_16(weights=pretrained_str)
+        vit.heads = nn.Linear(in_features=768, out_features=train_data.n_classes, bias=True)
+
+        resnet = torchvision.models.resnet50(pretrained=False)
+        d = resnet.fc.in_features
+        resnet.fc = nn.Linear(d,train_data.n_classes)
+        model = ConcatenatedModel(model1=vit, model2=resnet)
+    elif args.model == "resnet50_resnet50_np":
+        resnet1 = torchvision.models.resnet50(pretrained=True)
+        d = resnet1.fc.in_features
+        resnet1.fc = nn.Linear(d,train_data.n_classes)
+
+        resnet2 = torchvision.models.resnet50(pretrained=False)
+        d = resnet2.fc.in_features
+        resnet2.fc = nn.Linear(d,train_data.n_classes)
+        model = ConcatenatedModel(model1=resnet1, model2=resnet2)
+
     elif args.model == "resnet50SIMCLRv2":
         model, _ = get_resnet(depth=50, width_multiplier=1, sk_ratio=0)
         state = torch.load("/datasets/home/hbenoit/SimCLRv2-Pytorch/r50_1x_sk0.pth")
@@ -211,8 +278,30 @@ def main():
             for p in model.parameters():
                 p.requires_grad = False
         model.fc = nn.Linear(d, n_classes)
+    elif args.model == "resnet50SwAV":
+        model = torch.hub.load('facebookresearch/swav:main', 'resnet50')
+        d = model.fc.in_features
+        if args.head_only:
+            for p in model.parameters():
+                p.requires_grad = False
+        model.fc = nn.Linear(d, n_classes)
+    elif args.model == "resnet50MocoV2":
+        model = torchvision.models.resnet50(pretrained=pretrained)
+        d = model.fc.in_features
+
+        state = torch.load("/datasets/home/hbenoit/mocov2/moco_v2_800ep_pretrain.pth.tar")
+        new_state = {k.replace("module.encoder_q.",""):v for k,v in state["state_dict"].items()}
+        for i in ["0","2"]:
+            new_state.pop(f"fc.{i}.bias")
+            new_state.pop(f"fc.{i}.weight")
+            
+        model.load_state_dict(new_state, strict=False)
+
+        if args.head_only:
+            for p in model.parameters():
+                p.requires_grad = False
+        model.fc = nn.Linear(d, n_classes)
     elif args.model == "robust_resnet50":
-        print("HERE ROBUST LOADING")
         robust = get_robust_resnet50()
         state = torch.load("/datasets/home/hbenoit/robust_resnet/resnet50_l2_eps0.05.ckpt")
         new_state = {}

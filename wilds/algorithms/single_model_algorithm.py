@@ -106,7 +106,7 @@ class SingleModelAlgorithm(GroupAlgorithm):
     def objective(self, results):
         raise NotImplementedError
 
-    def evaluate(self, batch):
+    def evaluate(self, batch, unlabeled_batch=None):
         """
         Process the batch and update the log, without updating the model
         Args:
@@ -121,7 +121,7 @@ class SingleModelAlgorithm(GroupAlgorithm):
                 - objective (float)
         """
         assert not self.is_training
-        results = self.process_batch(batch)
+        results = self.process_batch(batch, unlabeled_batch=unlabeled_batch)
         results["objective"] = self.objective(results).item()
         self.update_log(results)
         return self.sanitize_dict(results)

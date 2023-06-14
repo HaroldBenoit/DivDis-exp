@@ -78,10 +78,11 @@ class CUBDataset(ConfounderDataset):
         # if model_attributes[self.model_type]['feature_type']=='precomputed':
         self.precomputed = True
         self.pretransformed = True
-        if os.path.exists(os.path.join(root_dir, "features", "cub.npy")):
+        feature_name = "cub.npy" if not(args.grayscale) else "cub_gray.npy"
+        if os.path.exists(os.path.join(root_dir, "features", feature_name)):
             self.features_mat = torch.from_numpy(
                 np.load(
-                    os.path.join(root_dir, "features", "cub.npy"), allow_pickle=True
+                    os.path.join(root_dir, "features", feature_name), allow_pickle=True
                 )
             ).float()
             self.train_transform = None
@@ -89,10 +90,10 @@ class CUBDataset(ConfounderDataset):
         else:
             self.features_mat = []
             self.train_transform = get_transform_cub(
-                self.model_type, train=True, augment_data=augment_data
+                self.model_type, train=True, augment_data=augment_data, grayscale=args.grayscale
             )
             self.eval_transform = get_transform_cub(
-                self.model_type, train=False, augment_data=augment_data
+                self.model_type, train=False, augment_data=augment_data, grayscale=args.grayscale
             )
 
             for idx in tqdm(range(len(self.y_array))):
@@ -120,9 +121,9 @@ class CUBDataset(ConfounderDataset):
             self.features_mat = torch.cat(
                 [x.unsqueeze(0) for x in self.features_mat], dim=0
             )
-            os.makedirs(os.path.join(root_dir, "features"))
+            os.makedirs(os.path.join(root_dir, "features"), exist_ok=True)
             np.save(
-                os.path.join(root_dir, "features", "cub.npy"), self.features_mat.numpy()
+                os.path.join(root_dir, "features", feature_name), self.features_mat.numpy()
             )
 
         self.RGB = True
@@ -151,15 +152,14 @@ class CUBDataset(ConfounderDataset):
         return self.y_array
 
 
-def get_transform_cub(model_type, train, augment_data):
+def get_transform_cub(model_type, train, augment_data, grayscale):
     scale = 256.0 / 224.0
     target_resolution = model_attributes[model_type]["target_resolution"]
     assert target_resolution is not None
 
     if (not train) or (not augment_data):
         # Resizes the image to a slightly larger square then crops the center.
-        transform = transforms.Compose(
-            [
+        transform_list=[
                 transforms.Resize(
                     (
                         int(target_resolution[0] * scale),
@@ -170,10 +170,14 @@ def get_transform_cub(model_type, train, augment_data):
                 transforms.ToTensor(),
                 transforms.Normalize([0.485, 0.456, 0.406], [0.229, 0.224, 0.225]),
             ]
-        )
+        
+        if grayscale:
+            print("GRAYSCALE ADDING HERE")
+            transform_list.append(transforms.Grayscale(num_output_channels=3))
+
+        transform = transforms.Compose(transform_list)
     else:
-        transform = transforms.Compose(
-            [
+        transform_list = [
                 transforms.RandomResizedCrop(
                     target_resolution,
                     scale=(0.7, 1.0),
@@ -184,5 +188,10 @@ def get_transform_cub(model_type, train, augment_data):
                 transforms.ToTensor(),
                 transforms.Normalize([0.485, 0.456, 0.406], [0.229, 0.224, 0.225]),
             ]
-        )
+        
+        if grayscale:
+            print("GRAYSCALE ADDING HERE")
+            transform_list.append(transforms.Grayscale(num_output_channels=3))
+            
+        transform = transforms.Compose(transform_list)
     return transform

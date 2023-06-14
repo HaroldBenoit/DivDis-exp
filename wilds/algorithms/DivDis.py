@@ -38,7 +38,8 @@ class DivDis(SingleModelAlgorithm):
         self.training_mode = True
         self.best_head_idx = 0
         self.diversity_weight = config.divdis_diversity_weight
-
+        self.seed = config.seed
+        self.pretrained = config.model_kwargs["pretrained"]
         # initialize module
         super().__init__(
             config=config,
@@ -90,10 +91,15 @@ class DivDis(SingleModelAlgorithm):
                 self.grouper.metadata_to_group(metadata_unlab), self.device
             )
             pred_unlab = self.get_model_output(x_unlab, None)
+            preds_unlab_chunked = torch.chunk(pred_unlab, self.model.heads, dim=-1)
+            for i in range(self.model.heads):
+                results[f"unlabeled_y_pred_{i}"] = preds_unlab_chunked[i]
 
+                
             results["unlabeled_metadata"] = metadata_unlab
             results["unlabeled_g"] = g_unlab
             results["unlabeled_y_pred"] = pred_unlab
+            
 
         # During evaluation, accumulate corrects and disagreements for head selection.
         if self.training == False:

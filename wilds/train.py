@@ -34,6 +34,7 @@ def run_epoch(
     epoch_y_true = []
     epoch_y_pred = []
     epoch_y_pred_heads = defaultdict(list)
+    epoch_unlabeled_y_pred_heads = defaultdict(list)
     epoch_metadata = []
 
     # Assert that data loaders are defined for the datasets
@@ -68,16 +69,32 @@ def run_epoch(
                     labeled_batch, is_epoch_end=(batch_idx == last_batch_idx)
                 )
         else:
-            batch_results = algorithm.evaluate(labeled_batch)
+
              ## individual head preds for DivDis
             if config.algorithm == "DivDis":
+                ## not defined
+                #if "unlabeled_data_iterator" not in globals():
+                #    unlabeled_data_iterator = InfiniteDataIterator(unlabeled_dataset["loader"])
+              
+                unlabeled_batch = None # next(unlabeled_data_iterator)
+                batch_results = algorithm.evaluate(labeled_batch, unlabeled_batch=unlabeled_batch)
                 for key in batch_results.keys():
-                        if "y_pred_" in key:
+                        if "unlabeled_y_pred_" in key:
+                            head_number = key[17:] ## get head number
+                            y_pred = detach_and_clone(batch_results[key])
+                            if config.process_outputs_function is not None:
+                                y_pred = process_outputs_functions[config.process_outputs_function](y_pred)
+                            epoch_unlabeled_y_pred_heads[f"unlabeled_h_{head_number}"].append(y_pred)                            
+                        elif "y_pred_" in key:
                             head_number = key[7:] ## get head number
                             y_pred = detach_and_clone(batch_results[key])
                             if config.process_outputs_function is not None:
                                 y_pred = process_outputs_functions[config.process_outputs_function](y_pred)
                             epoch_y_pred_heads[f"h_{head_number}"].append(y_pred)
+            else:
+
+                batch_results = algorithm.evaluate(labeled_batch)
+
 
         # These tensors are already detached, but we need to clone them again
         # Otherwise they don't get garbage collected properly in some versions
@@ -134,6 +151,11 @@ def run_epoch(
                 pred, epoch_y_true, epoch_metadata
                 )[0]
                 aux_results[f"epoch_y_pred_{curr_key}"] = pred.tolist()
+
+            for key in epoch_unlabeled_y_pred_heads:
+                curr_key = f"res_{key}"
+                pred = collate_list(epoch_unlabeled_y_pred_heads[key])
+                aux_results[f"epoch_unlabeled_y_pred_{curr_key}"] = pred.tolist()
 
             aux_results["epoch_y_true"] = epoch_y_true.tolist()
             aux_results["epoch_metadata"] = epoch_metadata.tolist()

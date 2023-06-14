@@ -43,6 +43,7 @@ def get_args():
     parser.add_argument("--val_fraction", type=float, default=0.1)
     parser.add_argument("--dog_group", type=int, default=4)
     parser.add_argument("--truck_group", type=int, default=4)
+    parser.add_argument("--grayscale", default=False, action="store_true")
     # Objective
     parser.add_argument("--robust", default=False, action="store_true")
     parser.add_argument("--alpha", type=float, default=0.2)
@@ -54,7 +55,9 @@ def get_args():
     parser.add_argument("--hinge", default=False, action="store_true")
 
     # Model
-    parser.add_argument("--model", choices=model_attributes.keys(), default="resnet50")
+    parser.add_argument("--model", choices=model_attributes.keys(), default="resnet50") # if model_list is not specified, specifies used model by the methods otherwise it only specifies the input type defined in models.py (weird quirk such that we didn't need to change too much code
+    # when introducing --model_list)
+    parser.add_argument("--model_list", nargs="*") ## specifies a list of this type [(model1, num_heads1), ..., (modelN, num_headsN)], expected syntax is e.g. --model_list resnet50 2 vit_b_16 1 
     parser.add_argument("--train_from_scratch", action="store_true", default=False)
     parser.add_argument(
         "--model_kwargs",
@@ -73,6 +76,13 @@ def get_args():
         default=False,
         help="Use only majority classes during training.",
     )
+    parser.add_argument(
+        "--inverse_correlation",
+        action="store_true",
+        default=False,
+        help="Use only minority classes on unlabeled data and validation",
+    )
+
     parser.add_argument("--majority_setting", type=str, default="")
     parser.add_argument(
         "--bn_mode", type=str, default="train", choices=["eval", "train", "mix"]
@@ -116,6 +126,7 @@ def get_args():
     parser.add_argument("--in_dist_testing", action="store_true", default=False)
     parser.add_argument("--seed", type=int, default=0)
     parser.add_argument("--log_dir", default="default")
+    parser.add_argument("--root_log_dir", default="./logs")
     parser.add_argument("--log_every", default=50, type=int)
     parser.add_argument("--save_step", type=int, default=1000)
     parser.add_argument("--save_best", action="store_true", default=False)
@@ -159,8 +170,10 @@ def get_args():
         args.weight_decay = 0.0001
         #default is resnet50
         #args.model = "resnet50"
-        args.batch_size = 128
-        args.n_epochs = 100
+        if args.batch_size !=128:
+            print("NON STANDARD BATCH SIZE USED FOR WBIRDS, BATCH SIZE OF 128 IS ADVISED")
+        #args.batch_size = 128
+        #args.n_epochs = 100
         args.gamma = 0.1
     elif args.setting == "MultiNLI":
         args.shift_type = "confounder"
@@ -215,7 +228,7 @@ def get_args():
         args.log_dir = "__DEBUG__"
         args.n_epochs = 2
 
-    args.log_dir = os.path.join("./logs", args.log_dir)
+    args.log_dir = os.path.join(args.root_log_dir, args.log_dir)
     check_args(args)
     if "CELEBA" in args.setting:
         args.exp_string += args.setting
@@ -243,6 +256,8 @@ def get_args():
 
     if args.train_from_scratch:
         args.exp_string += "_np"
+    if args.grayscale:
+        args.exp_string += "_grey"
     if args.in_dist_testing:
         args.exp_string += "_idtest"
     if args.robust:

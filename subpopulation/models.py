@@ -1,9 +1,33 @@
+import torch.nn as nn
+import torch
+
+
 model_attributes = {
     "bert": {"feature_type": "text"},
     "distilbert": {"feature_type": "text"},
     "inception_v3": {
         "feature_type": "image",
         "target_resolution": (299, 299),
+        "flatten": False,
+    },
+    "vit_b_16": {
+        "feature_type": "image",
+        "target_resolution": (224, 224),
+        "flatten": False,
+    },
+    "vit_b_16_resnet50": {
+        "feature_type": "image",
+        "target_resolution": (224, 224),
+        "flatten": False,
+    },
+        "vit_b_16_resnet50_np": {
+        "feature_type": "image",
+        "target_resolution": (224, 224),
+        "flatten": False,
+    },
+        "resnet50_resnet50_np": {
+        "feature_type": "image",
+        "target_resolution": (224, 224),
         "flatten": False,
     },
     "wideresnet50": {
@@ -17,6 +41,16 @@ model_attributes = {
         "flatten": False,
     },
     "resnet50SIMCLRv2": {
+        "feature_type": "image",
+        "target_resolution": (224, 224),
+        "flatten": False,
+    },
+    "resnet50SwAV": {
+        "feature_type": "image",
+        "target_resolution": (224, 224),
+        "flatten": False,
+    },
+    "resnet50MocoV2": {
         "feature_type": "image",
         "target_resolution": (224, 224),
         "flatten": False,
@@ -38,3 +72,23 @@ model_attributes = {
         "flatten": False,
     },
 }
+
+
+
+import torch
+import torch.nn as nn
+
+class ConcatenatedModel(nn.Module):
+    def __init__(self, *models):
+        super(ConcatenatedModel, self).__init__()
+        self.models = models
+
+    def forward(self, x):
+
+        # Concatenate the outputs
+        concatenated_output = torch.cat([model(x) for model in self.models], dim=1)
+
+        return concatenated_output
+
+
+

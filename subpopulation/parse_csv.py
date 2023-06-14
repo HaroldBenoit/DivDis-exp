@@ -67,7 +67,7 @@ def summarize(regex, no_sim=False):
             val_csv = pd.read_csv(f"{exp_name}_val.csv")
             test_csv = pd.read_csv(f"{exp_name}_test.csv")
             assert len(val_csv) >= 1 and len(test_csv) >= 1
-            all_exp_logs.append((n, exp_name[5:], (val_csv, test_csv)))
+            all_exp_logs.append((n, exp_name, (val_csv, test_csv)))
         except:
             logger.info(f"Can't read {exp_name}!")
 
@@ -89,7 +89,7 @@ def summarize(regex, no_sim=False):
         setting_name = name[:-2]
         path = Path(setting_name)
         ## assuming seed folder
-        setting_name = os.path.join(path.parents[1], path.stem)
+        setting_name = os.path.join(path.parents[1], setting_name.split("/")[-1])
         print("Setting", setting_name)
         worsts_dict[setting_name].append(worst_accs)
         avgs_dict[setting_name].append(avg_accs)
@@ -101,7 +101,8 @@ def summarize(regex, no_sim=False):
         reverse=True,
     )[:25]
 
-    logger.info("\nSorted by worst (Average acc, Worst-group acc, Mean similarity)")
+    logger.info(f"Regex:{regex}\n")
+    logger.info("\nSorted by worst (Average acc, Worst-group acc, Test similarity, Unlabeled similarity)")
     for key in keys_worst:
         avgs = [i["test_cv"] for i in avgs_dict[key]]
         worsts = [i["test_cv"] for i in worsts_dict[key]]
@@ -115,7 +116,9 @@ def summarize(regex, no_sim=False):
         if not(no_sim):
             sims = [i["test_sim"] for i in worsts_dict[key]]
             sims_string = f"{np.mean(sims):.3f} +- {np.std(sims):.3f}"
-            res_string = f"{os.path.basename(key):<80}\t{N}  {avg_string}    {worst_string}    {sims_string}"
+            val_sims = [i["val_sim"] for i in worsts_dict[key]]
+            val_sims_string = f"{np.mean(val_sims):.3f} +- {np.std(val_sims):.3f}"
+            res_string = f"{os.path.basename(key):<80}\t{N}  {avg_string}    {worst_string}    {sims_string}    {val_sims_string}"
 
         logger.info(
             res_string
@@ -123,9 +126,21 @@ def summarize(regex, no_sim=False):
 
 #summarize("logs/final_results_10-10/*_test.csv", no_sim=True)
 #summarize("logs/final_results_100-10/*_test.csv", no_sim=True)
-#summarize("paper_exp/waterbirds/logs/div*/np_cc_waterbirds/*_test.csv")
-#summarize("paper_exp/waterbirds/logs/div1/waterbirds/seed*/*_test.csv")
+#summarize("paper_exp/waterbirds/logs/div*/*waterbirds/seed*/*_test.csv")
 
-#summarize("paper_exp/waterbirds/logs/simclr/div10/*waterbirds/seed*/*_test.csv")
+#summarize("paper_exp/waterbirds/logs/grey/div10/heads*/*waterbirds/seed*/*_test.csv")
+#summarize("paper_exp/waterbirds/logs/heads*/div*/np_cc_waterbirds/seed*/*_test.csv")
+
+#summarize("paper_exp/waterbirds/logs/simclr/div*/*waterbirds/seed*/*_test.csv")
+#summarize("paper_exp/waterbirds/logs/robust/div*/*waterbirds/seed*/*_test.csv")
+#summarize("paper_exp/waterbirds/logs/swav/div*/*waterbirds/seed*/*_test.csv")
+#summarize("paper_exp/waterbirds/logs/moco/div*/*waterbirds/seed*/*_test.csv")
+#summarize("paper_exp/waterbirds/logs/vit_b_16/div*/*waterbirds/seed*/*_test.csv")
+#summarize("paper_exp/waterbirds/logs/two_models/div*/*waterbirds/seed*/*_test.csv")
+#summarize("paper_exp/waterbirds/logs/resnet50_resnet50_np/div*/*waterbirds/seed*/*_test.csv")
+summarize("paper_exp/waterbirds/logs/vit_b_16_resnet50_np/div*/*waterbirds/seed*/*_test.csv")
+
+
+#summarize("paper_exp/waterbirds/logs/inverse/div*/*waterbirds/seed*/*_test.csv")
 #summarize("paper_exp/celeba/logs/np_celeba_1_cc/*_test.csv")
 #summarize("paper_exp/celeba/logs/*celeba_2/seed*/*_test.csv")
