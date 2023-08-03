@@ -138,8 +138,9 @@ def summarize(regex, no_sim=False):
 #summarize("paper_exp/waterbirds/logs/vit_b_16/div*/*waterbirds/seed*/*_test.csv")
 #summarize("paper_exp/waterbirds/logs/two_models/div*/*waterbirds/seed*/*_test.csv")
 #summarize("paper_exp/waterbirds/logs/resnet50_resnet50_np/div*/*waterbirds/seed*/*_test.csv")
-summarize("paper_exp/waterbirds/logs/vit_b_16_resnet50_np/div*/*waterbirds/seed*/*_test.csv")
+#summarize("paper_exp/waterbirds/logs/vit_b_16_resnet50_np/div*/*waterbirds/seed*/*_test.csv")
 
+summarize("paper_exp/waterbirds/logs/mult_models/div*/*waterbirds/seed*/*_test.csv")
 
 #summarize("paper_exp/waterbirds/logs/inverse/div*/*waterbirds/seed*/*_test.csv")
 #summarize("paper_exp/celeba/logs/np_celeba_1_cc/*_test.csv")

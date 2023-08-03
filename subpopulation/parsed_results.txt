@@ -1,11 +1,11 @@
 
 
-Sorting for regex='paper_exp/waterbirds/logs/vit_b_16_resnet50_np/div*/*waterbirds/seed*/*_test.csv'
+Sorting for regex='paper_exp/waterbirds/logs/mult_models/div*/*waterbirds/seed*/*_test.csv'
 
 
 Standard Performance (Avg Acc, Worst Acc):
-Regex:paper_exp/waterbirds/logs/vit_b_16_resnet50_np/div*/*waterbirds/seed*/*_test.csv
+Regex:paper_exp/waterbirds/logs/mult_models/div*/*waterbirds/seed*/*_test.csv
 
 
 Sorted by worst (Average acc, Worst-group acc, Test similarity, Unlabeled similarity)
-CUB_div_h2_mi-mean-10.00_kl_backward-10.00_maj_bs32                             	3  0.582 +- 0.041    0.166 +- 0.059    0.685 +- 0.016    0.652 +- 0.028
+CUB_div_h6_mi-mean-10.00_kl_backward-10.00_maj_bs32                             	1  0.843 +- 0.000    0.636 +- 0.000    0.759 +- 0.000    0.723 +- 0.000

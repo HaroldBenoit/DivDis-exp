@@ -14,7 +14,7 @@ from data import folds
 from data.data import log_data, log_meta_data, prepare_data
 from data.dro_dataset import DRODataset
 from data.folds import Subset
-from models import model_attributes, ConcatenatedModel
+from models import model_attributes, get_model, ConcatenatedModel
 from train import train
 from utils import CSVBatchLogger, Logger, construct_loader, log_args, set_seed
 from resnet_simclr import get_resnet
@@ -227,109 +227,25 @@ def main():
         d = train_data.input_size()[0]
         model = nn.Linear(d, n_classes)
         model.has_aux_logits = False
-    elif args.model == "resnet50":
-        model = torchvision.models.resnet50(pretrained=pretrained)
-        d = model.fc.in_features
-        if args.head_only:
-            for p in model.parameters():
-                p.requires_grad = False
-        model.fc = nn.Linear(d, n_classes)
-    elif args.model == "vit_b_16":
-        pretrained_str = None if not(pretrained) else 'IMAGENET1K_V1'
-        model = torchvision.models.vit_b_16(weights=pretrained_str)
-        model.heads = nn.Linear(in_features=768, out_features=n_classes, bias=True)
 
-    elif args.model == "vit_b_16_resnet50":
-        assert args.heads == 2
-        pretrained_str = None if not(pretrained) else 'IMAGENET1K_V1'
-        vit = torchvision.models.vit_b_16(weights=pretrained_str)
-        vit.heads = nn.Linear(in_features=768, out_features=train_data.n_classes, bias=True)
-
-        resnet = torchvision.models.resnet50(pretrained=pretrained)
-        d = resnet.fc.in_features
-        resnet.fc = nn.Linear(d,train_data.n_classes)
-        model = ConcatenatedModel(model1=vit, model2=resnet)
-    elif args.model == "vit_b_16_resnet50_np":
-        assert args.heads == 2
-        pretrained_str = None if not(pretrained) else 'IMAGENET1K_V1'
-        vit = torchvision.models.vit_b_16(weights=pretrained_str)
-        vit.heads = nn.Linear(in_features=768, out_features=train_data.n_classes, bias=True)
-
-        resnet = torchvision.models.resnet50(pretrained=False)
-        d = resnet.fc.in_features
-        resnet.fc = nn.Linear(d,train_data.n_classes)
-        model = ConcatenatedModel(model1=vit, model2=resnet)
-    elif args.model == "resnet50_resnet50_np":
-        resnet1 = torchvision.models.resnet50(pretrained=True)
-        d = resnet1.fc.in_features
-        resnet1.fc = nn.Linear(d,train_data.n_classes)
-
-        resnet2 = torchvision.models.resnet50(pretrained=False)
-        d = resnet2.fc.in_features
-        resnet2.fc = nn.Linear(d,train_data.n_classes)
-        model = ConcatenatedModel(model1=resnet1, model2=resnet2)
-
-    elif args.model == "resnet50SIMCLRv2":
-        model, _ = get_resnet(depth=50, width_multiplier=1, sk_ratio=0)
-        state = torch.load("/datasets/home/hbenoit/SimCLRv2-Pytorch/r50_1x_sk0.pth")
-        model.load_state_dict(state["resnet"])
-        d = model.fc.in_features
-        if args.head_only:
-            for p in model.parameters():
-                p.requires_grad = False
-        model.fc = nn.Linear(d, n_classes)
-    elif args.model == "resnet50SwAV":
-        model = torch.hub.load('facebookresearch/swav:main', 'resnet50')
-        d = model.fc.in_features
-        if args.head_only:
-            for p in model.parameters():
-                p.requires_grad = False
-        model.fc = nn.Linear(d, n_classes)
-    elif args.model == "resnet50MocoV2":
-        model = torchvision.models.resnet50(pretrained=pretrained)
-        d = model.fc.in_features
-
-        state = torch.load("/datasets/home/hbenoit/mocov2/moco_v2_800ep_pretrain.pth.tar")
-        new_state = {k.replace("module.encoder_q.",""):v for k,v in state["state_dict"].items()}
-        for i in ["0","2"]:
-            new_state.pop(f"fc.{i}.bias")
-            new_state.pop(f"fc.{i}.weight")
-            
-        model.load_state_dict(new_state, strict=False)
-
-        if args.head_only:
-            for p in model.parameters():
-                p.requires_grad = False
-        model.fc = nn.Linear(d, n_classes)
-    elif args.model == "robust_resnet50":
-        robust = get_robust_resnet50()
-        state = torch.load("/datasets/home/hbenoit/robust_resnet/resnet50_l2_eps0.05.ckpt")
-        new_state = {}
-        for k in state["model"]:
-            if "attacker" not in k:
-                new_state [k.replace("module.","")] = state["model"][k]
-        robust.load_state_dict(new_state)
-        d = robust.model.fc.in_features
-        if args.head_only:
-            for p in robust.model.parameters():
-                p.requires_grad = False
-        robust.model.fc = nn.Linear(d, n_classes)
-
-        ## assume model
-        model = robust
+    elif args.model_list is not None:
         
-    elif args.model == "resnet34":
-        model = torchvision.models.resnet34(pretrained=pretrained)
-        d = model.fc.in_features
-        model.fc = nn.Linear(d, n_classes)
-    elif args.model == "wideresnet50":
-        model = torchvision.models.wide_resnet50_2(pretrained=pretrained)
-        d = model.fc.in_features
-        model.fc = nn.Linear(d, n_classes)
-    elif args.model == "densenet121":
-        model = torchvision.models.densenet121(pretrained=pretrained)
-        d = model.classifier.in_features
-        model.classifier = nn.Linear(d, n_classes)
+        assert (len(args.model_list) % 2) == 0
+        models = []
+        num_heads=[]
+        for i in range(0, len(args.model_list),2):
+            model_name = args.model_list[i]
+            curr_num_heads= int(args.model_list[i+1])
+            num_heads.append(curr_num_heads)
+            model = get_model(model_name=model_name, args=args, pretrained=pretrained, n_classes= train_data.n_classes*curr_num_heads)
+            models.append(model)
+
+        assert sum(num_heads) == args.heads
+
+        model = ConcatenatedModel(nn.ModuleList(models))
+
+    elif "bert" not in args.model:
+        model = get_model(model_name=args.model, args=args, pretrained=pretrained, n_classes=n_classes)
 
     elif "bert" in args.model:
         if args.is_featurizer:
